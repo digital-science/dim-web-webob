@@ -630,6 +630,7 @@ class SignedSerializer(object):
                  salt,
                  hashalg='sha512',
                  serializer=None,
+                 fips=False,
                  ):
         self.salt = salt
         self.secret = secret
@@ -642,8 +643,13 @@ class SignedSerializer(object):
             self.salted_secret = (
                 bytes_(salt or '', 'utf-8') + bytes_(secret, 'utf-8'))
 
-        self.digestmod = lambda string=b'': hashlib.new(self.hashalg, string)
-        self.digest_size = self.digestmod().digest_size
+        if fips:
+            self.digestmod = self.hashalg
+            temp_digestmod = lambda string=b'': hashlib.new(self.hashalg, string)
+            self.digest_size = temp_digestmod().digest_size
+        else:
+            self.digestmod = lambda string=b'': hashlib.new(self.hashalg, string)
+            self.digest_size = self.digestmod().digest_size
 
         if serializer is None:
             serializer = JSONSerializer()

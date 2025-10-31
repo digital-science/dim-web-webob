@@ -753,9 +753,9 @@ def serialize(secret, salt, data):
     return base64.urlsafe_b64encode(sig + cstruct).rstrip(b'=')
 
 class TestSignedSerializer(object):
-    def makeOne(self, secret, salt, hashalg='sha1', **kw):
+    def makeOne(self, secret, salt, hashalg='sha1', fips=False, **kw):
         from webob.cookies import SignedSerializer
-        return SignedSerializer(secret, salt, hashalg=hashalg, **kw)
+        return SignedSerializer(secret, salt, hashalg=hashalg, fips=fips, **kw)
 
     def test_serialize(self):
         ser = self.makeOne('seekrit', 'salty')
@@ -792,3 +792,15 @@ class TestSignedSerializer(object):
         ser = self.makeOne('secret', salt.decode('latin-1'))
 
         assert ser.loads(serialize('secret', salt, 'test')) == 'test'
+
+    def test_with_no_fips(self):
+        salt = b'La Pe\xc3\xb1a'
+        ser = self.makeOne('secret', salt.decode('latin-1'), fips=False)
+
+        assert callable(ser.digestmod)
+    
+    def test_with_fips(self):
+        salt = b'La Pe\xc3\xb1a'
+        ser = self.makeOne('secret', salt.decode('latin-1'), hashalg='MD5', fips=True)
+
+        assert ser.digestmod == 'MD5'
